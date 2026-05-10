@@ -1,0 +1,57 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "telegram-quick-open",
+  "title": "Telegram Quick Open",
+  "description": "Search Telegram contacts and groups from Raycast and open the exact chat in Telegram.",
+  "icon": "extension-icon.png",
+  "author": "phucbinh_dev",
+  "categories": ["Communication", "Productivity"],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "search-telegram",
+      "title": "Search Telegram",
+      "description": "Search Telegram contacts and groups",
+      "mode": "view"
+    }
+  ],
+  "preferences": [
+    {
+      "name": "apiId",
+      "title": "Telegram API ID",
+      "description": "Your Telegram api_id from my.telegram.org",
+      "type": "textfield",
+      "required": true
+    },
+    {
+      "name": "apiHash",
+      "title": "Telegram API Hash",
+      "description": "Your Telegram api_hash from my.telegram.org",
+      "type": "password",
+      "required": true
+    },
+    {
+      "name": "phoneNumber",
+      "title": "Phone Number",
+      "description": "Optional phone number in international format, e.g. +84901234567",
+      "type": "textfield",
+      "required": false
+    }
+  ],
+  "scripts": {
+    "dev": "ray develop",
+    "build": "ray build -e dist",
+    "lint": "ray lint",
+    "typecheck": "tsc --noEmit",
+    "publish": "npx @raycast/api@latest publish"
+  },
+  "dependencies": {
+    "@raycast/api": "^1.104.16",
+    "telegram": "^2.26.22"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.1.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^6.0.3"
+  }
+}
