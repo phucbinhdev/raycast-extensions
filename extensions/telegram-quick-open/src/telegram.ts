@@ -18,12 +18,6 @@ const CACHE_KEY = "telegram-dialog-cache";
 
 export const CACHE_MAX_AGE_MS = 10 * 60 * 1000;
 
-type Preferences = {
-  apiId: string;
-  apiHash: string;
-  phoneNumber?: string;
-};
-
 export function getConfiguredPhoneNumber(): string {
   return getPreferenceValues<Preferences>().phoneNumber?.trim() ?? "";
 }
@@ -173,6 +167,19 @@ export async function refreshDialogs(): Promise<TelegramSearchItem[]> {
       if (item) pairs.push([dialog, item]);
     }
 
+    const activeAvatarFiles = new Set(
+      pairs.map(([, item]) => `${item.id}.jpg`),
+    );
+    const existingAvatarFiles = await fs.promises.readdir(avatarDir);
+    await Promise.allSettled(
+      existingAvatarFiles
+        .filter(
+          (fileName) =>
+            fileName.endsWith(".jpg") && !activeAvatarFiles.has(fileName),
+        )
+        .map((fileName) => fs.promises.unlink(path.join(avatarDir, fileName))),
+    );
+
     await Promise.allSettled(
       pairs.map(async ([dialog, item]) => {
         if (!dialog.entity) return;
@@ -267,12 +274,7 @@ function dialogToSearchItem(dialog: Dialog): TelegramSearchItem | undefined {
   const title = getDialogTitle(dialog, entity);
   const id = (entity as { id: { toString(): string } }).id.toString();
   const participantsCount = getNumberProperty(entity, "participantsCount");
-  const lastMsgId = (dialog.message as { id?: number } | undefined)?.id;
-  const deepLink = buildDeepLink(entityKind, id, {
-    username,
-    phone,
-    lastMsgId,
-  });
+  const deepLink = buildDeepLink(entityKind, id, { username, phone });
   const fallbackUrl = username ? `https://t.me/${username}` : undefined;
   const keywords = [title, username, phone, type].filter(
     (value): value is string => Boolean(value),
@@ -323,9 +325,9 @@ function getDialogTitle(dialog: Dialog, entity: object): string {
 function buildDeepLink(
   entityKind: EntityKind,
   id: string,
-  opts: { username?: string; phone?: string; lastMsgId?: number },
+  opts: { username?: string; phone?: string },
 ): string {
-  const { username, phone, lastMsgId } = opts;
+  const { username, phone } = opts;
 
   if (username) {
     return `tg://resolve?domain=${encodeURIComponent(username)}`;
@@ -344,10 +346,8 @@ function buildDeepLink(
     return `tg://openmessage?chat_id=-${encodeURIComponent(id)}`;
   }
 
-  // Supergroup/channel: t.me/c/<id>/<msg_id> is the only format per Telegram docs
-  // Use last message id from dialog; fall back to 1
-  const msgId = lastMsgId ?? 1;
-  return `https://t.me/c/${id}/${msgId}`;
+  // Supergroup/channel: pin message id to 1 so cached links don't jump to stale history.
+  return `https://t.me/c/${id}/1`;
 }
 
 function getStringProperty(source: object, key: string): string | undefined {
@@ -393,10 +393,6 @@ async function getEntityInviteLink(
     if (exportedInvite instanceof Api.ChatInviteExported) {
       return exportedInvite.link;
     }
-    console.error(
-      "getEntityInviteLink: exportedInvite not ChatInviteExported",
-      exportedInvite,
-    );
   } catch (err) {
     console.error("getEntityInviteLink failed:", err);
   }

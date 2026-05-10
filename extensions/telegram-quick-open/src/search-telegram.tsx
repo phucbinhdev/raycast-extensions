@@ -398,7 +398,12 @@ async function openTelegramItem(item: TelegramSearchItem) {
     // t.me/c/ links for private supergroups must be opened directly inside
     // Telegram Desktop — the system handler routes them to the browser otherwise.
     if (item.deepLink.startsWith("https://t.me/c/")) {
-      await open(item.deepLink, "Telegram");
+      // Try App Store build first, then telegram.org desktop build.
+      try {
+        await open(item.deepLink, "ru.keepcoder.Telegram");
+      } catch {
+        await open(item.deepLink, "org.telegram.desktop");
+      }
     } else {
       await open(item.deepLink);
     }
